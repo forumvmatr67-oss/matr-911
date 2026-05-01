@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Эдово - Управление городом</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏙️ Управление городом Эдово</h1>
+            <p>Система мониторинга и управления городской инфраструктурой</p>
+        </div>
+
+        <div class="content">
+            <div class="map-area">
+                <h2>🗺️ Карта города</h2>
+                <canvas id="cityCanvas" width="700" height="500"></canvas>
+                <div class="refresh-info">
+                    <span>🔄 Данные обновляются автоматически каждые 30 секунд</span>
+                    <button id="refreshBtn" class="refresh-btn">Обновить сейчас</button>
+                </div>
+            </div>
+
+            <div class="complaints-area">
+                <h2>📋 Жалобы и вызовы</h2>
+                <div class="stats" id="stats">
+                    <h3>Статистика</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number" id="totalCount">0</div>
+                            <div class="stat-label">Всего</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="activeCount">0</div>
+                            <div class="stat-label">Активных</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="closedCount">0</div>
+                            <div class="stat-label">Закрытых</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="complaintsList" class="complaints-list"></div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Эдово - система управления городом | Данные синхронизируются с сервером</p>
+        </div>
+    </div>
+
+    <!-- Контекстное меню для карты -->
+    <div id="contextMenu" class="context-menu">
+        <div id="menuPolice">🚔 Вызвать полицию</div>
+        <div id="menuAmbulance">🚑 Вызвать скорую</div>
+        <div id="menuWorkers">🛠 Вызвать рабочих</div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
