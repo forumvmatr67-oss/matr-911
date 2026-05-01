@@ -2,63 +2,608 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Эдово - Управление городом</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🏙️ Эдово — Управление городом</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none; /* Удобно для карты, но текст можно выделять */
+        }
+
+        body {
+            margin: 0;
+            background: linear-gradient(145deg, #1a2a3a 0%, #0f1a24 100%);
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        /* Главный контейнер */
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(2px);
+            border-radius: 2rem;
+            overflow: hidden;
+            box-shadow: 0 25px 45px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        /* Шапка */
+        .header {
+            background: #0b2b26;
+            padding: 1.2rem;
+            text-align: center;
+            border-bottom: 3px solid #f4c542;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2rem;
+            letter-spacing: 1px;
+            color: #ffe3b0;
+            text-shadow: 2px 2px 0 #7a3e1f;
+        }
+
+        .header p {
+            margin: 0.5rem 0 0;
+            color: #cbd5e6;
+            font-weight: 500;
+        }
+
+        /* Две колонки */
+        .dashboard {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            padding: 1.5rem;
+        }
+
+        /* ЛЕВАЯ КОЛОНКА - КАРТА */
+        .map-panel {
+            flex: 2;
+            min-width: 280px;
+            background: #1e2f3a;
+            border-radius: 1.5rem;
+            padding: 1rem;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+
+        .map-panel h2 {
+            margin-top: 0;
+            color: #ffd966;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.4rem;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            background: #2c3e2f;
+            border-radius: 1rem;
+            cursor: crosshair;
+            box-shadow: inset 0 0 8px #00000030, 0 6px 12px rgba(0,0,0,0.2);
+            margin-bottom: 1rem;
+        }
+
+        .refresh-btn {
+            background: #f4c542;
+            border: none;
+            color: #2d2b1f;
+            font-weight: bold;
+            padding: 6px 14px;
+            border-radius: 60px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.8rem;
+        }
+
+        .refresh-btn:hover {
+            background: #ffb347;
+            transform: scale(0.96);
+        }
+
+        /* ПРАВАЯ КОЛОНКА - ЖАЛОБЫ */
+        .complaints-panel {
+            flex: 1.2;
+            min-width: 280px;
+            background: #fef9e8;
+            border-radius: 1.5rem;
+            padding: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 18px rgba(0,0,0,0.2);
+        }
+
+        .stats {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-card {
+            background: #2c3e50;
+            flex: 1;
+            text-align: center;
+            padding: 10px 5px;
+            border-radius: 1.2rem;
+            color: white;
+            font-weight: bold;
+            box-shadow: inset 0 -1px 0 #5a7b8c, 0 4px 8px #00000020;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .complaints-list {
+            flex: 1;
+            max-height: 450px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-right: 5px;
+        }
+
+        /* Карточка жалобы */
+        .ticket {
+            background: white;
+            border-radius: 1rem;
+            padding: 10px 12px;
+            border-left: 8px solid;
+            transition: 0.1s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .ticket-active {
+            border-left-color: #d9534f;
+            background: #fff5f5;
+        }
+
+        .ticket-closed {
+            border-left-color: #5cb85c;
+            background: #f0f9f0;
+            opacity: 0.7;
+        }
+
+        .ticket-building {
+            font-weight: bold;
+            font-size: 1rem;
+            padding-right: 70px;
+        }
+
+        .ticket-type {
+            display: inline-block;
+            font-size: 0.7rem;
+            padding: 2px 10px;
+            border-radius: 20px;
+            color: white;
+            margin: 6px 0 4px;
+        }
+
+        .type-police { background: #c0392b; }
+        .type-ambulance { background: #2980b9; }
+        .type-workers { background: #e67e22; }
+
+        .ticket-time {
+            font-size: 0.65rem;
+            color: #5d6d7e;
+        }
+
+        .ticket-actions {
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn-close, .btn-resolve {
+            border: none;
+            border-radius: 30px;
+            padding: 4px 10px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+
+        .btn-resolve { background: #2ecc71; color: white; }
+        .btn-close { background: #e67e22; color: white; }
+        .btn-resolve:hover, .btn-close:hover { filter: brightness(0.9); transform: scale(0.96);}
+
+        .empty-message {
+            text-align: center;
+            padding: 30px 10px;
+            color: #5e6c7c;
+            font-style: italic;
+        }
+
+        footer {
+            text-align: center;
+            padding: 14px;
+            background: #0b2b26;
+            color: #acb8c5;
+            font-size: 0.75rem;
+            border-top: 1px solid #f4c54240;
+        }
+        .footer-highlight {
+            color: #ffcd7e;
+        }
+
+        /* Контекстное меню (своё) */
+        .custom-context {
+            position: absolute;
+            background: #2d2f36e6;
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            border: 1px solid #ffcd7e;
+            display: none;
+            z-index: 1000;
+            overflow: hidden;
+            min-width: 160px;
+        }
+        .custom-context div {
+            padding: 10px 16px;
+            color: #f0e6c5;
+            cursor: pointer;
+            transition: 0.05s linear;
+            font-weight: 500;
+        }
+        .custom-context div:hover {
+            background: #f4c542;
+            color: #1f2a1b;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🏙️ Управление городом Эдово</h1>
-            <p>Система мониторинга и управления городской инфраструктурой</p>
-        </div>
 
-        <div class="content">
-            <div class="map-area">
-                <h2>🗺️ Карта города</h2>
-                <canvas id="cityCanvas" width="700" height="500"></canvas>
-                <div class="refresh-info">
-                    <span>🔄 Данные обновляются автоматически каждые 30 секунд</span>
-                    <button id="refreshBtn" class="refresh-btn">Обновить сейчас</button>
-                </div>
-            </div>
+<div class="app-container">
+    <div class="header">
+        <h1>🏙️ ЭДОВО | Сити-менеджмент</h1>
+        <p>ПКМ по зданию → вызов служб  |  Двойной клик по жалобе → закрыть  |  📍 данные в облаке</p>
+    </div>
 
-            <div class="complaints-area">
-                <h2>📋 Жалобы и вызовы</h2>
-                <div class="stats" id="stats">
-                    <h3>Статистика</h3>
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-number" id="totalCount">0</div>
-                            <div class="stat-label">Всего</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-number" id="activeCount">0</div>
-                            <div class="stat-label">Активных</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-number" id="closedCount">0</div>
-                            <div class="stat-label">Закрытых</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="complaintsList" class="complaints-list"></div>
+    <div class="dashboard">
+        <!-- Карта -->
+        <div class="map-panel">
+            <h2>🗺️ Карта города</h2>
+            <canvas id="cityCanvas" width="720" height="500" style="width:100%; height:auto; max-width:720px; aspect-ratio:720/500"></canvas>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                <span style="color:#ffdd99; font-size:0.7rem;">🟢 Зелёный — работает / 🔴 Красный — есть жалоба</span>
+                <button class="refresh-btn" id="refreshMapBtn">⟳ Обновить карту</button>
             </div>
         </div>
 
-        <div class="footer">
-            <p>Эдово - система управления городом | Данные синхронизируются с сервером</p>
+        <!-- Жалобы -->
+        <div class="complaints-panel">
+            <h2 style="margin:0 0 8px 0; color:#2e422b;">📋 Вызовы и заявки</h2>
+            <div class="stats" id="statsPanel"></div>
+            <div id="complaintsContainer" class="complaints-list">
+                <div class="empty-message">Загрузка данных...</div>
+            </div>
         </div>
     </div>
+    <footer>
+        ⚡ Данные хранятся в браузере (LocalStorage) — работают офлайн после загрузки.<br>
+        🧩 <span class="footer-highlight">Все изменения сохраняются автоматически.</span> Синхронизация с ПК не требуется.
+    </footer>
+</div>
 
-    <!-- Контекстное меню для карты -->
-    <div id="contextMenu" class="context-menu">
-        <div id="menuPolice">🚔 Вызвать полицию</div>
-        <div id="menuAmbulance">🚑 Вызвать скорую</div>
-        <div id="menuWorkers">🛠 Вызвать рабочих</div>
-    </div>
+<!-- Кастомное меню -->
+<div id="contextMenu" class="custom-context">
+    <div data-type="police" data-name="🚔 Полиция">🚔 Вызвать полицию</div>
+    <div data-type="ambulance" data-name="🚑 Скорая помощь">🚑 Вызвать скорую</div>
+    <div data-type="workers" data-name="🛠 Рабочие">🛠 Вызвать рабочих</div>
+</div>
 
-    <script src="script.js"></script>
+<script>
+    // ---------- ⚙️ ДАННЫЕ ГОРОДА ЭДОВО (полный список зданий) ----------
+    const CITY_BUILDINGS = [
+        { id: "house_176", type: "house", name: "🏠 Дом 176", x: 80, y: 70 },
+        { id: "house_177", type: "house", name: "🏠 Дом 177", x: 180, y: 70 },
+        { id: "house_178", type: "house", name: "🏠 Дом 178", x: 280, y: 70 },
+        { id: "house_179", type: "house", name: "🏠 Дом 179", x: 380, y: 70 },
+        { id: "house_240", type: "house", name: "🏠 Дом 240", x: 80, y: 180 },
+        { id: "house_238", type: "house", name: "🏠 Дом 238", x: 180, y: 180 },
+        { id: "house_239", type: "house", name: "🏠 Дом 239", x: 280, y: 180 },
+        { id: "house_237", type: "house", name: "🏠 Дом 237", x: 380, y: 180 },
+        { id: "house_180", type: "house", name: "🏠 Дом 180", x: 500, y: 180 },
+        { id: "parkomat_25", type: "business", name: "🅿️ Паркомат 25", x: 80, y: 300 },
+        { id: "atm_67", type: "business", name: "🏧 Банкомат 67", x: 180, y: 300 },
+        { id: "shawarma_12", type: "business", name: "🌯 Шаурма 12", x: 280, y: 300 },
+        { id: "parkomat_26", type: "business", name: "🅿️ Паркомат 26", x: 400, y: 300 },
+        { id: "atm_68", type: "business", name: "🏧 Банкомат 68", x: 520, y: 300 },
+        { id: "shop_247", type: "business", name: "🛒 Магазин 24/7 Корзина", x: 180, y: 410 }
+    ];
+
+    // ---------- РАБОТА С ХРАНИЛИЩЕМ (LocalStorage) ----------
+    const STORAGE_KEY = "edovo_city_data";
+
+    function loadCityData() {
+        const defaultData = {
+            buildings: CITY_BUILDINGS,
+            complaints: []
+        };
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+            try {
+                const parsed = JSON.parse(stored);
+                // проверяем, чтобы здания были актуальны (если надо обновить структуру)
+                if (parsed.buildings && parsed.buildings.length === CITY_BUILDINGS.length) {
+                    return parsed;
+                } else {
+                    // если здания изменились в коде — обновим buildings, но жалобы оставим
+                    return { buildings: CITY_BUILDINGS, complaints: parsed.complaints || [] };
+                }
+            } catch(e) { console.warn(e); }
+        }
+        return defaultData;
+    }
+
+    function saveCityData(data) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    // Глобальное состояние
+    let cityData = loadCityData();
+    let selectedBuildingId = null;
+
+    // ---------- ОТРИСОВКА КАРТЫ ----------
+    const canvas = document.getElementById('cityCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function drawMap() {
+        if (!ctx) return;
+        const w = canvas.width, h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+        // фон
+        ctx.fillStyle = "#3a5a45";
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = "#d4c3a0";
+        ctx.lineWidth = 1;
+        
+        cityData.buildings.forEach(b => {
+            const x = b.x, y = b.y;
+            const hasActive = cityData.complaints.some(c => c.buildingId === b.id && c.status === "active");
+            let fillColor;
+            if (b.type === "house") {
+                fillColor = hasActive ? "#e68373" : "#b0c4b5";
+            } else {
+                fillColor = hasActive ? "#f5b06b" : "#65b891";
+            }
+            ctx.fillStyle = fillColor;
+            ctx.shadowBlur = 0;
+            ctx.fillRect(x-38, y-18, 76, 36);
+            ctx.strokeRect(x-38, y-18, 76, 36);
+            ctx.fillStyle = "#1f2a1b";
+            ctx.font = "bold 12px 'Segoe UI'";
+            ctx.fillText(b.name, x-30, y+4);
+            
+            if (hasActive) {
+                ctx.fillStyle = "#d64531";
+                ctx.beginPath();
+                ctx.arc(x+32, y-12, 9, 0, 2*Math.PI);
+                ctx.fill();
+                ctx.fillStyle = "white";
+                ctx.font = "bold 12px monospace";
+                ctx.fillText("!", x+28, y-9);
+            }
+        });
+    }
+
+    // ---------- ОТРИСОВКА ЖАЛОБ + СТАТИСТИКИ ----------
+    function renderComplaints() {
+        const container = document.getElementById("complaintsContainer");
+        if (!container) return;
+        
+        if (!cityData.complaints.length) {
+            container.innerHTML = `<div class="empty-message">✨ Жалоб нет. Правый клик по зданию — добавить</div>`;
+            updateStats();
+            return;
+        }
+        
+        // сортировка: сначала активные, потом закрытые
+        const sorted = [...cityData.complaints].sort((a,b) => {
+            if (a.status === "active" && b.status !== "active") return -1;
+            if (a.status !== "active" && b.status === "active") return 1;
+            return new Date(b.timestamp) - new Date(a.timestamp);
+        });
+        
+        container.innerHTML = "";
+        sorted.forEach(compl => {
+            const div = document.createElement("div");
+            div.className = `ticket ${compl.status === "active" ? "ticket-active" : "ticket-closed"}`;
+            const typeLabel = compl.typeRu || (compl.type === "police" ? "Полиция" : compl.type === "ambulance" ? "Скорая" : "Рабочие");
+            const timeStr = new Date(compl.timestamp).toLocaleString("ru-RU");
+            div.innerHTML = `
+                <div class="ticket-building">🏢 ${compl.buildingName}</div>
+                <div class="ticket-type type-${compl.type}">${typeLabel}</div>
+                <div class="ticket-time">⏱️ ${timeStr}</div>
+                <div class="ticket-actions">
+                    ${compl.status === "active" ? `
+                        <button class="btn-resolve" data-id="${compl.id}" data-action="resolve">✅ Выполнить</button>
+                        <button class="btn-close" data-id="${compl.id}" data-action="close">✖ Отменить</button>
+                    ` : `<span style="font-size:0.7rem;">✔️ Закрыт</span>`}
+                </div>
+            `;
+            container.appendChild(div);
+        });
+        
+        // навешиваем обработчики на кнопки (динамически)
+        document.querySelectorAll('.btn-resolve').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = btn.getAttribute('data-id');
+                closeComplaintById(id);
+            });
+        });
+        document.querySelectorAll('.btn-close').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = btn.getAttribute('data-id');
+                closeComplaintById(id);
+            });
+        });
+        updateStats();
+    }
+    
+    function updateStats() {
+        const statsDiv = document.getElementById("statsPanel");
+        if (!statsDiv) return;
+        const total = cityData.complaints.length;
+        const active = cityData.complaints.filter(c => c.status === "active").length;
+        const closed = total - active;
+        statsDiv.innerHTML = `
+            <div class="stat-card"><div class="stat-number">${total}</div><div class="stat-label">Всего</div></div>
+            <div class="stat-card"><div class="stat-number">${active}</div><div class="stat-label">Активных</div></div>
+            <div class="stat-card"><div class="stat-number">${closed}</div><div class="stat-label">Закрытых</div></div>
+        `;
+    }
+    
+    // Закрыть жалобу (отмена / выполнение)
+    function closeComplaintById(complaintId) {
+        const complaint = cityData.complaints.find(c => c.id === complaintId);
+        if (!complaint) return;
+        if (complaint.status === "closed") return;
+        complaint.status = "closed";
+        complaint.color = "green";
+        complaint.resolvedAt = new Date().toISOString();
+        saveCityData(cityData);
+        renderComplaints();
+        drawMap();  // обновить маркеры на карте
+    }
+    
+    // Добавить жалобу
+    function addComplaint(buildingId, type, typeRu) {
+        const building = cityData.buildings.find(b => b.id === buildingId);
+        if (!building) return;
+        const newId = "comp_" + Date.now() + "_" + Math.floor(Math.random()*1000);
+        const newComplaint = {
+            id: newId,
+            buildingId: building.id,
+            buildingName: building.name,
+            type: type,
+            typeRu: typeRu,
+            timestamp: new Date().toISOString(),
+            description: `Вызов ${typeRu}`,
+            status: "active",
+            color: "red"
+        };
+        cityData.complaints.push(newComplaint);
+        saveCityData(cityData);
+        renderComplaints();
+        drawMap();
+    }
+    
+    // ---------- КОНТЕКСТНОЕ МЕНЮ (ПКМ) ----------
+    const contextMenu = document.getElementById("contextMenu");
+    
+    function findBuildingByCoords(mouseX, mouseY) {
+        for (let b of cityData.buildings) {
+            const left = b.x - 38, right = b.x + 38;
+            const top = b.y - 18, bottom = b.y + 18;
+            if (mouseX >= left && mouseX <= right && mouseY >= top && mouseY <= bottom) {
+                return b.id;
+            }
+        }
+        return null;
+    }
+    
+    canvas.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const canvasX = (e.clientX - rect.left) * scaleX;
+        const canvasY = (e.clientY - rect.top) * scaleY;
+        
+        const buildingId = findBuildingByCoords(canvasX, canvasY);
+        if (buildingId) {
+            selectedBuildingId = buildingId;
+            contextMenu.style.display = "block";
+            contextMenu.style.left = (e.pageX) + "px";
+            contextMenu.style.top = (e.pageY) + "px";
+        } else {
+            contextMenu.style.display = "none";
+        }
+    });
+    
+    window.addEventListener('click', () => {
+        contextMenu.style.display = "none";
+    });
+    
+    // обработка пунктов меню
+    document.querySelectorAll('#contextMenu div').forEach(menuItem => {
+        menuItem.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const type = menuItem.getAttribute('data-type');
+            const name = menuItem.getAttribute('data-name');
+            if (selectedBuildingId && type && name) {
+                addComplaint(selectedBuildingId, type, name);
+            }
+            contextMenu.style.display = "none";
+        });
+    });
+    
+    // Двойной клик по жалобе в общем списке (для удобства закрытия)
+    document.getElementById("complaintsContainer")?.addEventListener('dblclick', (e) => {
+        let target = e.target;
+        while (target && !target.classList?.contains('ticket')) {
+            target = target.parentElement;
+            if (!target || target === document.body) return;
+        }
+        if (target && target.classList.contains('ticket')) {
+            // ищем ID внутри кнопок? проще: найти ближайшую жалобу из данных неудобно, но можно повторно использовать закрытие по кнопке.
+            // Для упрощения: предложим через кнопки, но разрешим двойной клик — сделаем поиск id.
+            const possibleIdBtn = target.querySelector('.btn-resolve')?.getAttribute('data-id') || target.querySelector('.btn-close')?.getAttribute('data-id');
+            if (possibleIdBtn) closeComplaintById(possibleIdBtn);
+            else {
+                // fallback: найти по тексту? но лучше игнорировать
+            }
+        }
+    });
+    
+    // Обновить всё вручную
+    function fullRefresh() {
+        // синхронизация из localStorage (мало ли внешние изменения)
+        cityData = loadCityData();
+        drawMap();
+        renderComplaints();
+    }
+    
+    document.getElementById('refreshMapBtn')?.addEventListener('click', () => {
+        fullRefresh();
+    });
+    
+    // Первоначальный запуск
+    fullRefresh();
+    
+    // Опционально авто-сохранение при закрытии вкладки не нужно, всё сразу пишется в localStorage
+    setInterval(() => {
+        // просто синхронизируем отображение если кто-то менял данные в другой вкладке? (опционально)
+        const fresh = loadCityData();
+        if (JSON.stringify(fresh) !== JSON.stringify(cityData)) {
+            cityData = fresh;
+            drawMap();
+            renderComplaints();
+        }
+    }, 4000);
+</script>
 </body>
 </html>
